@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: white; font-family: 'Segoe UI', sans-serif; }
+        .glass { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; }
+        .input-field { background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.1); color: white; padding: 15px; border-radius: 10px; width: 100%; outline: none; transition: all 0.3s; }
+        .input-field:focus { border-color: #ff006e; box-shadow: 0 0 20px rgba(255,0,110,0.3); }
+        .btn-primary { background: linear-gradient(45deg, #ff006e, #8338ec); border: none; padding: 15px 40px; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; transition: transform 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255,0,110,0.4); }
+        .quality-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 10px; margin: 5px; border-radius: 8px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: space-between; }
+        .quality-btn:hover { background: rgba(255,0,110,0.2); border-color: #ff006e; }
+        #loader { display: none; border: 4px solid rgba(255,255,255,0.1); border-left-color: #ff006e; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-4xl mx-auto pt-10">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">YouTube Downloader</h1>
+            <p class="text-gray-400">Download videos in HD quality</p>
+        </div>
+
+        <div class="glass p-6 mb-6">
+            <div class="flex gap-4">
+                <input type="text" id="videoUrl" class="input-field" placeholder="Paste YouTube URL here...">
+                <button onclick="fetchVideo()" class="btn-primary"><i class="fas fa-search mr-2"></i>Fetch</button>
+            </div>
+        </div>
+
+        <div id="loader"></div>
+
+        <div id="videoInfo" class="glass p-6 hidden">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <img id="thumbnail" class="w-full rounded-lg shadow-lg" src="" alt="Thumbnail">
+                </div>
+                <div>
+                    <h2 id="title" class="text-2xl font-bold mb-2"></h2>
+                    <p id="author" class="text-gray-400 mb-4"></p>
+                    <div id="downloads" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="glass p-6 hidden border-red-500/50 bg-red-500/20 text-red-200"></div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+
+        async function fetchVideo() {
+            const url = document.getElementById('videoUrl').value;
+            if (!url) return alert('Please enter a URL');
+
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('videoInfo').classList.add('hidden');
+            document.getElementById('error').classList.add('hidden');
+
+            try {
+                const res = await fetch(API_URL + '/api/info', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url})
+                });
+                const data = await res.json();
+
+                if (!data.success) throw new Error(data.error);
+
+                document.getElementById('thumbnail').src = data.thumbnail;
+                document.getElementById('title').textContent = data.title;
+                document.getElementById('author').textContent = data.author;
+
+                const downloadsDiv = document.getElementById('downloads');
+                downloadsDiv.innerHTML = '<h3 class="font-bold mb-2">Select Quality:</h3>';
+
+                data.streams.forEach(stream => {
+                    const btn = document.createElement('div');
+                    btn.className = 'quality-btn';
+                    btn.innerHTML = `<span>${stream.quality} (${stream.size})</span> <i class="fas fa-download"></i>`;
+                    btn.onclick = () => download(stream.itag, stream.type);
+                    downloadsDiv.appendChild(btn);
+                });
+
+                document.getElementById('videoInfo').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('error').textContent = err.message;
+                document.getElementById('error').classList.remove('hidden');
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        async function download(itag, type) {
+            const url = document.getElementById('videoUrl').value;
+            window.open(`${API_URL}/api/download?url=${encodeURIComponent(url)}&itag=${itag}&type=${type}`, '_blank');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+name = "Hukiop"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "build"
+
+[[headers]]
+for = "/*"
+[headers.values]
+Access-Control-Allow-Origin = "*"
+Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+Access-Control-Allow-Headers = "*"
